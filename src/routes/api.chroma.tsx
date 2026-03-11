@@ -23,6 +23,7 @@ export const Route = createFileRoute('/api/chroma')({
 
           if (action === 'documents') {
             const collectionId = url.searchParams.get('collectionId')
+            const query = readOptionalParam(url.searchParams.get('q'))
             if (!collectionId) {
               return json(
                 { error: 'Missing required query parameter: collectionId' },
@@ -47,6 +48,7 @@ export const Route = createFileRoute('/api/chroma')({
                 host,
                 tenant,
                 database,
+                query,
               }),
             )
           }

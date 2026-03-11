@@ -180,16 +180,50 @@ export async function getCollectionDocuments(input: {
   host?: string
   tenant?: string
   database?: string
+  query?: string
 }) {
   const config = getChromaConfig({
     host: input.host,
     tenant: input.tenant,
     database: input.database,
   })
-  const body = {
+  const body: Record<string, unknown> = {
     limit: input.limit,
     offset: input.offset,
     include: ['documents', 'metadatas', 'embeddings'],
+  }
+
+  const trimmedQuery = input.query?.trim()
+  if (trimmedQuery) {
+    if (trimmedQuery.startsWith('id:')) {
+      const ids = trimmedQuery
+        .slice(3)
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+      if (ids.length > 0) {
+        body.ids = ids
+      }
+    } else {
+      const metadataMatch = trimmedQuery.match(
+        /^([A-Za-z0-9_.-]+)\s*(=|:)\s*(.+)$/,
+      )
+      if (metadataMatch && metadataMatch[1] !== 'id') {
+        const key = metadataMatch[1]
+        const rawValue = metadataMatch[3].trim()
+        const parsedValue =
+          rawValue === 'true'
+            ? true
+            : rawValue === 'false'
+              ? false
+              : Number.isFinite(Number(rawValue))
+                ? Number(rawValue)
+                : rawValue
+        body.where = { [key]: parsedValue }
+      } else {
+        body.where_document = { $contains: trimmedQuery }
+      }
+    }
   }
   const v2Path = `/api/v2/tenants/${encodeURIComponent(config.tenant)}/databases/${encodeURIComponent(config.database)}/collections/${encodeURIComponent(input.collectionId)}/get`
 

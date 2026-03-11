@@ -107,29 +107,6 @@ function buildConnectionQuery(search: SearchState) {
   return encoded ? `&${encoded}` : ''
 }
 
-async function fetchAllCollectionRows(input: {
-  collectionId: string
-  connectionQuery: string
-  totalChunks: number
-}) {
-  const batchSize = 250
-  const rows: DocumentRow[] = []
-  let offset = 0
-
-  while (offset < input.totalChunks) {
-    const page = await readJson<DocumentsResponse>(
-      `/api/chroma?action=documents&collectionId=${encodeURIComponent(input.collectionId)}&limit=${batchSize}&offset=${offset}${input.connectionQuery}`,
-    )
-    rows.push(...page.rows)
-    if (page.rows.length < batchSize) {
-      break
-    }
-    offset += batchSize
-  }
-
-  return rows
-}
-
 function ChromaDashboard() {
   const navigate = Route.useNavigate()
   const search = Route.useSearch()
@@ -163,35 +140,14 @@ function ChromaDashboard() {
       search.host,
       search.tenant,
       search.database,
+      normalizedRecordFilter,
     ],
     queryFn: () =>
       readJson<DocumentsResponse>(
-        `/api/chroma?action=documents&collectionId=${encodeURIComponent(selectedCollection ?? '')}&limit=${PAGE_SIZE}&offset=${offset}${connectionQuery}`,
+        `/api/chroma?action=documents&collectionId=${encodeURIComponent(selectedCollection ?? '')}&limit=${PAGE_SIZE}&offset=${offset}${connectionQuery}${normalizedRecordFilter ? `&q=${encodeURIComponent(recordFilter.trim())}` : ''}`,
       ),
     enabled: Boolean(selectedCollection),
     refetchInterval: 3000,
-    placeholderData: (prev) => prev,
-  })
-
-  const globalSearchRowsQuery = useQuery({
-    queryKey: [
-      'documents-global-search',
-      selectedCollection,
-      search.host,
-      search.tenant,
-      search.database,
-      documentsQuery.data?.totalChunks ?? 0,
-    ],
-    queryFn: () =>
-      fetchAllCollectionRows({
-        collectionId: selectedCollection ?? '',
-        connectionQuery,
-        totalChunks: documentsQuery.data?.totalChunks ?? 0,
-      }),
-    enabled:
-      Boolean(selectedCollection) &&
-      normalizedRecordFilter.length > 0 &&
-      Boolean(documentsQuery.data?.totalChunks),
     placeholderData: (prev) => prev,
   })
 
@@ -227,31 +183,12 @@ function ChromaDashboard() {
       ?.name ?? null
 
   const isGlobalSearchMode = normalizedRecordFilter.length > 0
-  const canGoPrev = offset > 0 && !isGlobalSearchMode
-  const canGoNext =
-    (documentsQuery.data?.rows.length ?? 0) >= PAGE_SIZE && !isGlobalSearchMode
+  const canGoPrev = offset > 0
+  const canGoNext = (documentsQuery.data?.rows.length ?? 0) >= PAGE_SIZE
 
   const filteredRows = useMemo(() => {
-    const rows = isGlobalSearchMode
-      ? globalSearchRowsQuery.data ?? []
-      : documentsQuery.data?.rows ?? []
-    const needle = normalizedRecordFilter
-    if (!needle) return rows
-
-    return rows.filter((row) => {
-      const metadataString = row.metadata ? JSON.stringify(row.metadata) : ''
-      return (
-        row.id.toLowerCase().includes(needle) ||
-        (row.document ?? '').toLowerCase().includes(needle) ||
-        metadataString.toLowerCase().includes(needle)
-      )
-    })
-  }, [
-    documentsQuery.data?.rows,
-    globalSearchRowsQuery.data,
-    isGlobalSearchMode,
-    normalizedRecordFilter,
-  ])
+    return documentsQuery.data?.rows ?? []
+  }, [documentsQuery.data?.rows])
 
   const formatVector = (vector: number[] | null) => {
     if (!vector || vector.length === 0) return '[]'
@@ -450,7 +387,7 @@ function ChromaDashboard() {
                 Prev
               </button>
               <span className="toolbar-page-label">
-                {isGlobalSearchMode ? 'Search mode' : `Page ${pageNum}`}
+                {isGlobalSearchMode ? `Search page ${pageNum}` : `Page ${pageNum}`}
               </span>
               <button
                 type="button"
@@ -474,17 +411,9 @@ function ChromaDashboard() {
             </div>
 
             <div className="table-wrap">
-              {isGlobalSearchMode && globalSearchRowsQuery.isLoading ? (
-                <div className="empty-state">
-                  <span className="spinner" /> Searching entire collection...
-                </div>
-              ) : !documentsQuery.data && documentsQuery.isLoading ? (
+              {!documentsQuery.data && documentsQuery.isLoading ? (
                 <div className="empty-state">
                   <span className="spinner" /> Loading records...
-                </div>
-              ) : isGlobalSearchMode && globalSearchRowsQuery.isError ? (
-                <div className="empty-state is-error">
-                  {globalSearchRowsQuery.error.message}
                 </div>
               ) : documentsQuery.isError && !documentsQuery.data ? (
                 <div className="empty-state is-error">{documentsQuery.error.message}</div>
