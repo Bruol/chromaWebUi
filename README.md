@@ -2,6 +2,10 @@
 
 Reactive web UI for ChromaDB, built with TanStack Start and styled with a Convex-inspired developer console aesthetic.
 
+
+![header image](./public/image.png)
+
+
 ## Features
 
 - Lists all collections from Chroma.
@@ -85,3 +89,4 @@ This project ships a `docker-compose.yml` that starts:
 - `bun run build` - production build
 - `bun run lint` - lint code
 - `bun run test` - run tests
+
