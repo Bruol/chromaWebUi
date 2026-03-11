@@ -1,0 +1,27 @@
+services:
+  chroma:
+    image: chromadb/chroma:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+  chroma-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - chroma
+    environment:
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      CHROMA_TENANT: default_tenant
+      CHROMA_DATABASE: default_database
+      PORT: 3000
+    ports:
+      - "3000:3000"
+
+volumes:
+  chroma_data:
