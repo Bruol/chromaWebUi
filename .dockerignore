@@ -1,0 +1,7 @@
+node_modules
+.output
+.tanstack
+.git
+npm-debug.log
+Dockerfile*
+docker-compose.yml

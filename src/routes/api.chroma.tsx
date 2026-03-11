@@ -2,6 +2,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { getCollectionDocuments, listCollections } from '../server/chroma'
 
+function readOptionalParam(value: string | null) {
+  return value && value.trim().length > 0 ? value.trim() : undefined
+}
+
 export const Route = createFileRoute('/api/chroma')({
   server: {
     handlers: {
@@ -9,9 +13,12 @@ export const Route = createFileRoute('/api/chroma')({
         try {
           const url = new URL(request.url)
           const action = url.searchParams.get('action')
+          const host = readOptionalParam(url.searchParams.get('host'))
+          const tenant = readOptionalParam(url.searchParams.get('tenant'))
+          const database = readOptionalParam(url.searchParams.get('database'))
 
           if (action === 'collections') {
-            return json(await listCollections())
+            return json(await listCollections({ host, tenant, database }))
           }
 
           if (action === 'documents') {
@@ -37,6 +44,9 @@ export const Route = createFileRoute('/api/chroma')({
                 collectionId,
                 limit,
                 offset,
+                host,
+                tenant,
+                database,
               }),
             )
           }

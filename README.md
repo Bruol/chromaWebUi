@@ -36,8 +36,8 @@ Optional:
 ## Local Development
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -45,8 +45,8 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Production Build
 
 ```bash
-npm run build
-node .output/server/index.mjs
+bun run build
+bun .output/server/index.mjs
 ```
 
 ## Docker
@@ -81,7 +81,7 @@ This project ships a `docker-compose.yml` that starts:
 
 ## Scripts
 
-- `npm run dev` - start dev server
-- `npm run build` - production build
-- `npm run lint` - lint code
-- `npm run test` - run tests
+- `bun run dev` - start dev server
+- `bun run build` - production build
+- `bun run lint` - lint code
+- `bun run test` - run tests
